@@ -52,100 +52,68 @@
 ### PROGRAM
 ```
 from collections import defaultdict
+import heapq
 
-def heuristic(node, H_dist):
-    return H_dist.get(node, 0)
+# Heuristic distances
+H_dist = {}
 
-def get_neighbors(node, Graph_nodes):
-    return Graph_nodes.get(node, [])
+def aStarAlgo(start, goal):
+    open_set = []
+    heapq.heappush(open_set, (0 + heuristic(start), 0, start))  # (f = g + h, g, node)
 
-def aStarAlgo(start_node, stop_node, Graph_nodes, H_dist):
-    open_set = set([start_node])
-    closed_set = set()
-    g = {}  # store distance from starting node
-    parents = {}  # parents contains an adjacency map of all nodes
+    came_from = {}
+    g_cost = defaultdict(lambda: float('inf'))
+    g_cost[start] = 0
 
-    # distance of starting node from itself is zero
-    g[start_node] = 0
+    while open_set:
+        f, g, current = heapq.heappop(open_set)
 
-    # start_node is root node i.e it has no parent nodes
-    # so start_node is set to its own parent node
-    parents[start_node] = start_node
+        if current == goal:
+            return reconstruct_path(came_from, current)
 
-    while len(open_set) > 0:
-        n = None
+        for neighbor, weight in get_neighbors(current):
+            tentative_g = g_cost[current] + weight
+            if tentative_g < g_cost[neighbor]:
+                came_from[neighbor] = current
+                g_cost[neighbor] = tentative_g
+                heapq.heappush(open_set, (tentative_g + heuristic(neighbor), tentative_g, neighbor))
 
-        # node with lowest f() is found
-        for v in open_set:
-            if n is None or g[v] + heuristic(v, H_dist) < g[n] + heuristic(n, H_dist):
-                n = v
-
-        if n is None:
-            print('Path does not exist!')
-            return None
-
-        # if the current node is the stop_node
-        # then we begin reconstructing the path from it to the start_node
-        if n == stop_node:
-            path = []
-            while parents[n] != n:
-                path.append(n)
-                n = parents[n]
-            path.append(start_node)
-            path.reverse()
-            print('Path found: {}'.format(path))
-            return path
-
-        # for all the neighbors of the current node do
-        for (m, weight) in get_neighbors(n, Graph_nodes):
-            # nodes 'm' not in first and last set are added to first
-            # n is set its parent
-            if m not in open_set and m not in closed_set:
-                open_set.add(m)
-                parents[m] = n
-                g[m] = g[n] + weight
-            # for each node m, compare its distance from start i.e g(m) to the
-            # from start through n node
-            else:
-                if g[m] > g[n] + weight:
-                    # update g(m)
-                    g[m] = g[n] + weight
-                    # change parent of m to n
-                    parents[m] = n
-                    # if m in closed set, remove and add to open
-                    if m in closed_set:
-                        closed_set.remove(m)
-                        open_set.add(m)
-
-        # remove n from the open_list, and add it to closed_list
-        # because all of its neighbors were inspected
-        open_set.remove(n)
-        closed_set.add(n)
-
-    print('Path does not exist!')
+    print("Path does not exist!")
     return None
 
-# Input from user
+def get_neighbors(node):
+    return Graph_nodes[node]
+
+def heuristic(node):
+    return H_dist.get(node, 0)
+
+def reconstruct_path(came_from, current):
+    path = [current]
+    while current in came_from:
+        current = came_from[current]
+        path.append(current)
+    path.reverse()
+    print("Path found:", path)
+    return path
+
+# Input part
 Graph_nodes = defaultdict(list)
-num_edges = int(input("Enter the number of edges: "))
-print("Enter the edges in the format 'start end weight':")
-for _ in range(num_edges):
-    start, end, weight = input().split()
-    weight = int(weight)
-    Graph_nodes[start].append((end, weight))
-    Graph_nodes[end].append((start, weight))  # if the graph is undirected
+n, e = map(int, input().split())
 
-H_dist = {}
-num_nodes = int(input("Enter the number of nodes: "))
-print("Enter the heuristic values in the format 'node heuristic_value':")
-for _ in range(num_nodes):
-    node, h_value = input().split()
-    H_dist[node] = int(h_value)
+for _ in range(e):
+    u, v, cost = input().split()
+    cost = int(cost)
+    Graph_nodes[u].append((v, cost))
+    Graph_nodes[v].append((u, cost))  # Undirected
 
-start_node = input("Enter the start node: ")
-stop_node = input("Enter the stop node: ")
+for _ in range(n):
+    node, h = input().split()
+    H_dist[node] = int(h)
 
-aStarAlgo(start_node, stop_node, Graph_nodes, H_dist)
+start = input()
+goal = input()
+
+aStarAlgo(start, goal)
 
 ```
 
